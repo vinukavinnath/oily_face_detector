@@ -40,7 +40,7 @@ def read_file_as_image(data) -> np.ndarray:
 async def predict(
     file: UploadFile = File(...)
 ):
-    pass
+
     image = read_file_as_image(await file.read())
     img_batch = np.expand_dims(image, 0)
 
