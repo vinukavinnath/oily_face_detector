@@ -1,57 +1,50 @@
-
 from fastapi import FastAPI, File, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
 import numpy as np
 from io import BytesIO
 from PIL import Image
 import tensorflow as tf
+import cv2 as cv
+import uvicorn
 
 app = FastAPI()
 
-# origins = [
-#     "http://localhost",
-#     "http://localhost:3000",
-# ]
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=origins,
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-
-MODEL = tf.keras.models.load_model("../models/epoch50")
+MODEL = tf.keras.models.load_model("../models/epoch50.keras")
 
 CLASS_NAMES = ["Acne", "Dry", "Normal", "Oily"]
 
-
-@app.get("/ping")
-async def ping():
-    return "Webpage is alive"
+# Converts the uploaded image to a numpy array
 
 
-def read_file_as_image(data) -> np.ndarray:
-    image = np.array(Image.open(BytesIO(data)))
-    return image
+def preprocess_image(file):
+    img_bytes = BytesIO(file)
+    img = Image.open(img_bytes)
+    img = np.array(img)
+
+    resized = cv.resize(img, (224, 224))
+    return resized
 
 
-@app.post("/predict")
-async def predict(
-    file: UploadFile = File(...)
-):
+@app.get("/")
+async def root():
+    return {"Webpage is alive"}
 
-    image = read_file_as_image(await file.read())
-    img_batch = np.expand_dims(image, 0)
 
-    predictions = MODEL.predict(img_batch)
+@app.post("/level")
+async def skin_level(file: UploadFile = File(...)):
 
-    predicted_class = CLASS_NAMES[np.argmax(predictions[0])]
-    confidence = np.max(predictions[0])
+    image = preprocess_image(await file.read())
+    print('File read')
+
+    prediction = MODEL.predict(np.expand_dims(image, axis=0))
+    confidence = round(100 * (np.max(prediction[0])), 2)
+
+    class_index = np.argmax(prediction)
+    skin_type = CLASS_NAMES[class_index]
+
     return {
-        'class': predicted_class,
-        'confidence': float(confidence)
+        'Skin Type': skin_type,
+        'Confidence': confidence
     }
 
 if __name__ == "__main__":
-    uvicorn.run(app, host='localhost', port=8000)
+    uvicorn.run(app, host="localhost", port=8000)
