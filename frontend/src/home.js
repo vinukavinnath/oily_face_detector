@@ -14,7 +14,7 @@ import image from "./bg.png";
 import { DropzoneArea } from 'material-ui-dropzone';
 import { common } from '@material-ui/core/colors';
 import Clear from '@material-ui/icons/Clear';
-
+import axios from 'axios';
 
 
 
@@ -27,7 +27,7 @@ const ColorButton = withStyles((theme) => ({
     },
   },
 }))(Button);
-const axios = require("axios").default;
+// const axios = require("axios").default
 
 const useStyles = makeStyles((theme) => ({
   grow: {
@@ -156,15 +156,21 @@ export const ImageUpload = () => {
     if (image) {
       let formData = new FormData();
       formData.append("file", selectedFile);
-      let res = await axios({
-        method: "post",
-        url: process.env.REACT_APP_API_URL,
-        data: formData,
-      });
-      if (res.status === 200) {
-        setData(res.data);
-      }
-      setIsloading(false);
+
+      // Manually set the Content-Type header to multipart/form-data
+      const config = {
+        headers: {
+          "Content-Type": "multipart/form-data"
+        }
+      };
+
+      axios.post("http://0.0.0.0:8000/level", formData, config)
+        .then((res) => {
+          setData(res.data);
+        })
+        .catch((error) => {
+          console.error("Error uploading file:", error);
+        });
     }
   }
 
@@ -200,12 +206,13 @@ export const ImageUpload = () => {
       return;
     }
     setSelectedFile(files[0]);
+    console.log("Helloooo")
     setData(undefined);
     setImage(true);
   };
 
   if (data) {
-    confidence = (parseFloat(data.confidence) * 100).toFixed(2);
+    confidence = (parseFloat(data.confidence)).toFixed(2);
   }
 
   return (
@@ -258,7 +265,7 @@ export const ImageUpload = () => {
                     <TableBody className={classes.tableBody}>
                       <TableRow className={classes.tableRow}>
                         <TableCell component="th" scope="row" className={classes.tableCell}>
-                          {data.class}
+                          {data.skin_type}
                         </TableCell>
                         <TableCell align="right" className={classes.tableCell}>{confidence}%</TableCell>
                       </TableRow>
