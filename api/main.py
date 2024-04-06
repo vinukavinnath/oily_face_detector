@@ -1,4 +1,5 @@
 from fastapi import FastAPI, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
 from io import BytesIO
 from PIL import Image
@@ -24,6 +25,19 @@ def preprocess_image(file):
     return resized
 
 
+# Define allowed origins for CORS
+origins = ["*", "http://localhost", "http://localhost:3000"]
+
+# Setup CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*",]
+)
+
+
 @app.get("/")
 async def root():
     return {"Webpage is alive"}
@@ -42,9 +56,9 @@ async def skin_level(file: UploadFile = File(...)):
     skin_type = CLASS_NAMES[class_index]
 
     return {
-        'Skin Type': skin_type,
-        'Confidence': confidence
+        'skin_type': skin_type,
+        'confidence': confidence
     }
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="localhost", port=8000)
+    uvicorn.run(app, host="localhost", port=8000, reload=True)
